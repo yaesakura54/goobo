@@ -14,11 +14,14 @@ GOOBO_DIR = BASE_DIR.parent
 # Reuse the sibling hardware test modules without copying their code here.
 sys.path.insert(0, str(GOOBO_DIR / "hx711_test"))
 sys.path.insert(0, str(GOOBO_DIR / "eye_matrix_test"))
+sys.path.insert(0, str(GOOBO_DIR / "bus_servo_test"))
 
+from bus_servo import BusServo  # noqa: E402
 from eye_matrix_8x8 import EyeMatrix  # noqa: E402
 from hx711 import HX711  # noqa: E402
 
 RGB = Tuple[int, int, int]
+ServoPositions = dict[int, tuple[float, float]]
 
 
 def read_config(path: Path) -> configparser.ConfigParser:
@@ -85,6 +88,51 @@ def blink_frames(eye_color: RGB, eye_count: int) -> list[list[tuple[int, int, RG
     return [[(x, y, eye_color) for x, y in shape] for shape in shapes]
 
 
+def parse_int_list(value: str) -> list[int]:
+    ids = [int(part.strip(), 0) for part in value.split(",") if part.strip()]
+    if not ids:
+        raise ValueError("servo_bus.move_order cannot be empty")
+    return ids
+
+
+def parse_servo_positions(config: configparser.ConfigParser) -> ServoPositions:
+    if not config.has_section("servo_positions"):
+        raise ValueError("Missing [servo_positions] config section")
+
+    positions: ServoPositions = {}
+    for servo_id_text, angles_text in config.items("servo_positions"):
+        servo_id = int(servo_id_text, 0)
+        parts = [part.strip() for part in angles_text.split(",")]
+        if len(parts) != 2:
+            raise ValueError(f"servo {servo_id} must be configured as initial_degrees,target_degrees")
+        positions[servo_id] = (float(parts[0]), float(parts[1]))
+
+    return positions
+
+
+def move_servos(
+    bus: BusServo,
+    positions: ServoPositions,
+    move_order: list[int],
+    use_initial_angle: bool,
+    move_time_ms: int,
+    speed: int,
+    gap_seconds: float,
+) -> None:
+    target_name = "initial" if use_initial_angle else "target"
+    for index, servo_id in enumerate(move_order):
+        if servo_id not in positions:
+            raise ValueError(f"servo id {servo_id} is in move_order but missing from servo_positions")
+
+        initial_degrees, target_degrees = positions[servo_id]
+        degrees = initial_degrees if use_initial_angle else target_degrees
+        bus.move_to_raw(servo_id, bus.degrees_to_raw(degrees), time_ms=move_time_ms, speed=speed)
+        print(f"servo id={servo_id} move {target_name} degrees={degrees:.2f}")
+
+        if index < len(move_order) - 1:
+            time.sleep(gap_seconds)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Drive 8x8 eye matrix from HX711 weight threshold.")
     parser.add_argument(
@@ -128,8 +176,30 @@ def main() -> None:
     )
     frame_index = 0
     mode = None
+    servo_state = None
+    servo_bus = None
+    servo_enabled = config.getboolean("servo_bus", "enabled")
+    servo_positions: ServoPositions = {}
+    servo_move_order: list[int] = []
+    servo_move_time_ms = 0
+    servo_speed = 0
+    servo_gap_seconds = 0.0
 
     try:
+        if servo_enabled:
+            servo_positions = parse_servo_positions(config)
+            servo_move_order = parse_int_list(config.get("servo_bus", "move_order"))
+            servo_move_time_ms = config.getint("servo_bus", "move_time_ms")
+            servo_speed = config.getint("servo_bus", "speed")
+            servo_gap_seconds = config.getfloat("servo_bus", "move_gap_seconds")
+            servo_bus = BusServo(
+                port=config.get("servo_bus", "port"),
+                baud=config.getint("servo_bus", "baud"),
+            )
+            if config.getboolean("servo_bus", "enable_torque"):
+                for servo_id in servo_move_order:
+                    servo_bus.enable_torque(servo_id, True)
+
         print("Keep the scale empty, tare start...")
         hx.tare(times=config.getint("hx711", "tare_times"))
         hx.set_scale(config.getfloat("hx711", "scale"))
@@ -143,12 +213,34 @@ def main() -> None:
                 if mode != "full":
                     matrix.draw_pixels([], background=full_color)
                     mode = "full"
+                if servo_bus is not None and servo_state != "initial":
+                    move_servos(
+                        bus=servo_bus,
+                        positions=servo_positions,
+                        move_order=servo_move_order,
+                        use_initial_angle=True,
+                        move_time_ms=servo_move_time_ms,
+                        speed=servo_speed,
+                        gap_seconds=servo_gap_seconds,
+                    )
+                    servo_state = "initial"
                 time.sleep(poll_interval)
                 continue
 
             mode = "blink"
             matrix.draw_pixels(frames[frame_index % len(frames)], background=background_color)
             frame_index += 1
+            if servo_bus is not None and servo_state != "target":
+                move_servos(
+                    bus=servo_bus,
+                    positions=servo_positions,
+                    move_order=servo_move_order,
+                    use_initial_angle=False,
+                    move_time_ms=servo_move_time_ms,
+                    speed=servo_speed,
+                    gap_seconds=servo_gap_seconds,
+                )
+                servo_state = "target"
             time.sleep(blink_delay)
 
     except KeyboardInterrupt:
@@ -157,6 +249,8 @@ def main() -> None:
     finally:
         matrix.clear()
         hx.cleanup()
+        if servo_bus is not None:
+            servo_bus.close()
 
 
 if __name__ == "__main__":
