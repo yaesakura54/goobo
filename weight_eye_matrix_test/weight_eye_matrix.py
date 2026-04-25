@@ -49,7 +49,7 @@ def mirror(points: Iterable[tuple[int, int]], left_width: int = 3, gap: int = 2)
     return left + [(x + x_offset, y) for x, y in left]
 
 
-def blink_frames(eye_color: RGB) -> list[list[tuple[int, int, RGB]]]:
+def double_eye_shapes() -> list[list[tuple[int, int]]]:
     open_eye = mirror(
         [
             (0, 2), (1, 1), (2, 2),
@@ -58,7 +58,35 @@ def blink_frames(eye_color: RGB) -> list[list[tuple[int, int, RGB]]]:
         ]
     )
     narrow_eye = mirror([(0, 3), (1, 3), (2, 3)])
-    shapes = [open_eye, narrow_eye, [], narrow_eye, open_eye]
+    return [open_eye, narrow_eye, [], narrow_eye, open_eye]
+
+
+def single_eye_shapes() -> list[list[tuple[int, int]]]:
+    open_eye = [
+        (2, 1), (3, 1), (4, 1), (5, 1),
+        (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2),
+        (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3),
+        (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4),
+        (1, 5), (2, 5), (3, 5), (4, 5), (5, 5), (6, 5),
+        (2, 6), (3, 6), (4, 6), (5, 6),
+    ]
+    narrow_eye = [(1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3)]
+    half_open_eye = [
+        (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2),
+        (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3),
+        (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4),
+    ]
+    return [open_eye, half_open_eye, narrow_eye, [], narrow_eye, half_open_eye, open_eye]
+
+
+def blink_frames(eye_color: RGB, eye_count: int) -> list[list[tuple[int, int, RGB]]]:
+    if eye_count == 1:
+        shapes = single_eye_shapes()
+    elif eye_count == 2:
+        shapes = double_eye_shapes()
+    else:
+        raise ValueError("display.eye_count must be 1 or 2")
+
     return [[(x, y, eye_color) for x, y in shape] for shape in shapes]
 
 
@@ -99,7 +127,10 @@ def main() -> None:
     blink_delay = 1.0 / max(1, config.getint("display", "blink_fps"))
     full_color = parse_rgb(config.get("display", "full_color"))
     background_color = parse_rgb(config.get("display", "background_color"))
-    frames = blink_frames(parse_rgb(config.get("display", "eye_color")))
+    frames = blink_frames(
+        eye_color=parse_rgb(config.get("display", "eye_color")),
+        eye_count=config.getint("display", "eye_count"),
+    )
     frame_index = 0
     mode = None
 

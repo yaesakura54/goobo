@@ -29,6 +29,7 @@ LED 点阵通常需要 root 权限访问 PWM/GPIO，建议用 `sudo` 运行。
 [display]
 threshold = 90.0
 eye_color = 255,0,0
+eye_count = 2
 ```
 
 常用配置：
@@ -41,7 +42,18 @@ eye_color = 255,0,0
 - `display.threshold`: 重量阈值，默认 `90.0`。
 - `display.full_color`: 全亮颜色，格式 `R,G,B`。
 - `display.eye_color`: 眼睛颜色，格式 `R,G,B`，默认红色 `255,0,0`。
+- `display.eye_count`: 眼睛数量，`1` 是 8x8 中央大眼睛，`2` 是左右两只小眼睛。
 - `display.blink_fps`: 眨眼动画速度。
+
+眼睛数量示例：
+
+```ini
+# 一只大眼睛
+eye_count = 1
+
+# 两只小眼睛
+eye_count = 2
+```
 
 常用颜色示例：
 

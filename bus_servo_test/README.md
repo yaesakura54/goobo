@@ -40,32 +40,32 @@ ls -l /dev/ttyUSB* /dev/ttyACM*
 扫描总线上的 ID：
 
 ```bash
-python3 debug_servo.py --port /dev/ttyUSB0 scan --start 1 --end 20
+python3 debug_servo.py --port /dev/ttyACM0 scan --start 1 --end 20
 ```
 
 测试单个 ID 是否响应：
 
 ```bash
-python3 debug_servo.py --port /dev/ttyUSB0 ping --id 1
+python3 debug_servo.py --port /dev/ttyACM0 ping --id 1
 ```
 
 读取单个舵机状态：
 
 ```bash
-python3 debug_servo.py --port /dev/ttyUSB0 status --id 1
+python3 debug_servo.py --port /dev/ttyACM0 status --id 1
 ```
 
 打开或关闭扭矩：
 
 ```bash
-python3 debug_servo.py --port /dev/ttyUSB0 torque --id 1 on
-python3 debug_servo.py --port /dev/ttyUSB0 torque --id 1 off
+python3 debug_servo.py --port /dev/ttyACM0 torque --id 1 on
+python3 debug_servo.py --port /dev/ttyACM0 torque --id 1 off
 ```
 
 发一个位置命令：
 
 ```bash
-python3 debug_servo.py --port /dev/ttyUSB0 move --id 1 --degrees 180 --time-ms 1000 --enable-torque
+python3 debug_servo.py --port /dev/ttyACM0 move --id 1 --degrees 180 --time-ms 1000 --enable-torque
 ```
 
 ## 设置舵机 ID
@@ -83,25 +83,25 @@ python3 debug_servo.py --port /dev/ttyUSB0 move --id 1 --degrees 180 --time-ms 1
 运行：
 
 ```bash
-python3 set_servo_ids.py --port /dev/ttyUSB0
+python3 set_servo_ids.py --port /dev/ttyACM0
 ```
 
 如果舵机当前不是默认 ID `1`：
 
 ```bash
-python3 set_servo_ids.py --port /dev/ttyUSB0 --current-id 3
+python3 set_servo_ids.py --port /dev/ttyACM0 --current-id 3
 ```
 
 如果你确认总线上只接了一个舵机，也可以用广播方式写 ID：
 
 ```bash
-python3 set_servo_ids.py --port /dev/ttyUSB0 --broadcast
+python3 set_servo_ids.py --port /dev/ttyACM0 --broadcast
 ```
 
 自定义 ID 映射：
 
 ```bash
-python3 set_servo_ids.py --port /dev/ttyUSB0 --motors base_yaw:1,base_pitch:2
+python3 set_servo_ids.py --port /dev/ttyACM0 --motors base_yaw:1,base_pitch:2
 ```
 
 ## 记录角度
@@ -109,19 +109,19 @@ python3 set_servo_ids.py --port /dev/ttyUSB0 --motors base_yaw:1,base_pitch:2
 读取 1 到 5 号舵机的位置并打印：
 
 ```bash
-python3 record_angles.py --port /dev/ttyUSB0
+python3 record_angles.py --port /dev/ttyACM0
 ```
 
 写入 CSV：
 
 ```bash
-python3 record_angles.py --port /dev/ttyUSB0 --csv angles.csv
+python3 record_angles.py --port /dev/ttyACM0 --csv angles.csv
 ```
 
 指定 ID、频率和时长：
 
 ```bash
-python3 record_angles.py --port /dev/ttyUSB0 --ids 1,2,3 --hz 20 --duration 10 --csv angles.csv
+python3 record_angles.py --port /dev/ttyACM0 --ids 1,2,3 --hz 20 --duration 10 --csv angles.csv
 ```
 
 ## 说明
