@@ -37,6 +37,8 @@ eye_count = 2
 - `hx711.dout_pin`: HX711 DOUT 的 BCM 引脚，默认 `5`。
 - `hx711.sck_pin`: HX711 SCK 的 BCM 引脚，默认 `6`。
 - `hx711.scale`: 称重比例，默认 `1000.0`，需要按实际砝码校准。
+- `hx711.tare_times`: 启动时空秤归零的采样次数，默认 `5`。数值越小启动越快，数值越大归零越稳。
+- `hx711.read_times`: 每次读取重量的采样次数，默认 `5`。数值越小响应越快，数值越大读数越稳。
 - `matrix.pin`: WS281x 信号引脚，默认 `12`。
 - `matrix.brightness`: LED 亮度，范围 `0..255`。
 - `display.threshold`: 重量阈值，默认 `90.0`。
@@ -53,6 +55,18 @@ eye_count = 1
 
 # 两只小眼睛
 eye_count = 2
+```
+
+启动速度示例：
+
+```ini
+# 启动更快，读数更灵敏
+tare_times = 3
+read_times = 3
+
+# 启动更慢，读数更稳定
+tare_times = 15
+read_times = 9
 ```
 
 常用颜色示例：
