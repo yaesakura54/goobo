@@ -9,6 +9,7 @@
 - `audio_test/`: 麦克风录音和扬声器播放测试。
 - `eye_matrix_test/`: 8x8 WS281x LED 点阵表情测试。
 - `hx711_test/`: HX711 称重传感器驱动和读取测试。
+- `weight_eye_matrix_test/`: HX711 重量阈值联动 8x8 LED 点阵。
 
 ## 相机测试
 
@@ -92,6 +93,26 @@ python3 test_hx711.py
 ```
 
 启动后先保持秤为空，脚本会做 tare，然后持续打印 raw/value/weight。当前 `test_hx711.py` 里的 `scale` 是示例值，需要按实际砝码校准。
+
+## 重量联动灯阵测试
+
+这个脚本会读取 HX711 重量并控制 LED 点阵：
+
+- 重量大于 `config.ini` 里的 `display.threshold` 时，灯阵全亮。
+- 重量小于或等于阈值时，灯阵显示眼睛眨眼。
+
+运行：
+
+```bash
+cd /home/neurobo/test/goobo/weight_eye_matrix_test
+sudo python3 weight_eye_matrix.py
+```
+
+改阈值或硬件参数时，编辑：
+
+```bash
+/home/neurobo/test/goobo/weight_eye_matrix_test/config.ini
+```
 
 ## 总线舵机测试
 
