@@ -5,6 +5,7 @@ import argparse
 import configparser
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Tuple
 
@@ -23,6 +24,7 @@ from hx711 import HX711  # noqa: E402
 RGB = Tuple[int, int, int]
 ServoPositions = dict[int, tuple[float, float]]
 Frame = list[tuple[int, int, RGB]]
+LoggerConfig = tuple[bool, Path, int]
 
 
 def read_config(path: Path) -> configparser.ConfigParser:
@@ -103,6 +105,31 @@ def parse_int_list(value: str) -> list[int]:
     return ids
 
 
+def parse_logger_config(config: configparser.ConfigParser) -> LoggerConfig:
+    if not config.has_section("logging"):
+        return (False, BASE_DIR / "weight_eye_matrix.log", 1048576)
+
+    return (
+        config.getboolean("logging", "enabled"),
+        Path(config.get("logging", "path")).expanduser(),
+        config.getint("logging", "max_bytes"),
+    )
+
+
+def write_log(logger_config: LoggerConfig, message: str) -> None:
+    enabled, path, max_bytes = logger_config
+    if not enabled:
+        return
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.stat().st_size >= max_bytes:
+        path.write_text("", encoding="utf-8")
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with path.open("a", encoding="utf-8") as log_file:
+        log_file.write(f"{timestamp} {message}\n")
+
+
 def parse_servo_positions(config: configparser.ConfigParser) -> ServoPositions:
     if not config.has_section("servo_positions"):
         raise ValueError("Missing [servo_positions] config section")
@@ -178,12 +205,14 @@ def main() -> None:
     blink_delay = 1.0 / max(1, config.getint("display", "blink_fps"))
     full_color = parse_rgb(config.get("display", "full_color"))
     background_color = parse_rgb(config.get("display", "background_color"))
+    logger_config = parse_logger_config(config)
     frames = expression_frames(
         expression_id=config.getint("display", "expression_id"),
         eye_color=parse_rgb(config.get("display", "eye_color")),
     )
     frame_index = 0
     mode = None
+    weight_state = None
     servo_state = None
     servo_bus = None
     servo_enabled = config.getboolean("servo_bus", "enabled")
@@ -212,12 +241,19 @@ def main() -> None:
         hx.tare(times=config.getint("hx711", "tare_times"))
         hx.set_scale(config.getfloat("hx711", "scale"))
         print(f"offset={hx.offset:.2f}, threshold={threshold:.3f}")
+        write_log(logger_config, f"event=start offset={hx.offset:.2f} threshold={threshold:.3f}")
 
         while True:
             weight = hx.get_weight(times=config.getint("hx711", "read_times"))
             print(f"weight={weight:8.3f}")
 
             if weight > threshold:
+                if weight_state != "high":
+                    write_log(
+                        logger_config,
+                        f"state=high weight={weight:.3f} threshold={threshold:.3f} action=full_light_initial_servos",
+                    )
+                    weight_state = "high"
                 if mode != "full":
                     matrix.draw_pixels([], background=full_color)
                     mode = "full"
@@ -235,6 +271,12 @@ def main() -> None:
                 time.sleep(poll_interval)
                 continue
 
+            if weight_state != "low":
+                write_log(
+                    logger_config,
+                    f"state=low weight={weight:.3f} threshold={threshold:.3f} action=expression_target_servos",
+                )
+                weight_state = "low"
             mode = "blink"
             matrix.draw_pixels(frames[frame_index % len(frames)], background=background_color)
             frame_index += 1

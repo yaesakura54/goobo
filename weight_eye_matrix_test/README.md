@@ -51,6 +51,11 @@ move_order = 1,2,3,4,5
 3 = 100,80
 4 = 90,50
 5 = 10,0
+
+[logging]
+enabled = true
+path = /home/neurobo/test/goobo/weight_eye_matrix_test/weight_eye_matrix.log
+max_bytes = 1048576
 ```
 
 常用配置：
@@ -76,6 +81,9 @@ move_order = 1,2,3,4,5
 - `servo_bus.enable_torque`: 启动时是否给配置的舵机开启扭矩。
 - `servo_bus.move_order`: 舵机动作顺序，默认从 `1` 到 `5`。
 - `servo_positions`: 每行格式是 `舵机ID = 初始角度,目标角度`。
+- `logging.enabled`: 是否写入日志文件。
+- `logging.path`: 日志文件路径。
+- `logging.max_bytes`: 日志文件大小上限。写入前如果达到上限，会清空旧内容再写入新日志。
 
 舵机角度示例：
 
@@ -152,6 +160,26 @@ eye_color = 255,255,255
 
 # 暖黄色
 eye_color = 255,180,0
+```
+
+日志示例：
+
+```text
+2026-04-26 14:23:10 event=start offset=-123.45 threshold=90.000
+2026-04-26 14:23:20 state=low weight=70.120 threshold=90.000 action=expression_target_servos
+2026-04-26 14:25:02 state=high weight=95.320 threshold=90.000 action=full_light_initial_servos
+```
+
+日志不会记录每一次读取到的重量，只会记录：
+
+- 程序启动。
+- 重量第一次进入高于阈值状态。
+- 重量第一次进入低于或等于阈值状态。
+
+查看日志：
+
+```bash
+tail -f /home/neurobo/test/goobo/weight_eye_matrix_test/weight_eye_matrix.log
 ```
 
 ## 运行
