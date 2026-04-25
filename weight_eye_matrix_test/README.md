@@ -33,7 +33,7 @@ LED 点阵通常需要 root 权限访问 PWM/GPIO，建议用 `sudo` 运行。
 [display]
 threshold = 90.0
 eye_color = 255,0,0
-eye_count = 1
+expression_id = 1
 
 [servo_bus]
 enabled = true
@@ -65,7 +65,7 @@ move_order = 1,2,3,4,5
 - `display.threshold`: 重量阈值，默认 `90.0`。
 - `display.full_color`: 全亮颜色，格式 `R,G,B`。
 - `display.eye_color`: 眼睛颜色，格式 `R,G,B`，默认红色 `255,0,0`。
-- `display.eye_count`: 眼睛数量，`1` 是 8x8 中央大眼睛，`2` 是左右两只小眼睛。
+- `display.expression_id`: 小于等于阈值时使用的表情编号。
 - `display.blink_fps`: 眨眼动画速度。
 - `servo_bus.enabled`: 是否启用舵机联动。
 - `servo_bus.port`: 舵机串口，默认 `/dev/ttyACM0`。
@@ -104,14 +104,23 @@ move_time_ms = 1500
 move_gap_seconds = 0.2
 ```
 
-眼睛数量示例：
+表情编号：
+
+- `1`: 从 `/home/neurobo/test/DEMO.ino` 提取的静态眼睛，像素编号 `12,13,14,52,53,54`。
+- `2`: 一只 8x8 中央大眼睛眨眼。
+- `3`: 左右两只小眼睛眨眼。
+
+表情配置示例：
 
 ```ini
-# 一只大眼睛
-eye_count = 1
+# DEMO.ino 静态眼睛
+expression_id = 1
 
-# 两只小眼睛
-eye_count = 2
+# 一只大眼睛眨眼
+expression_id = 2
+
+# 两只小眼睛眨眼
+expression_id = 3
 ```
 
 启动速度示例：
@@ -159,3 +168,45 @@ sudo python3 weight_eye_matrix.py --config ./config.ini
 ```
 
 启动后保持秤为空，脚本会先 tare，然后进入循环读取重量并控制灯阵。
+
+## 开机自启动
+
+Ubuntu 25 使用 systemd 管理开机服务。安装脚本会创建并启用：
+
+```text
+/etc/systemd/system/goobo-weight-eye-matrix.service
+```
+
+安装：
+
+```bash
+cd /home/neurobo/test/goobo/weight_eye_matrix_test
+sudo ./install_autostart.sh
+```
+
+安装脚本只会执行 `systemctl enable`，不会立即启动服务。确认树莓派已经接好 HX711、LED 点阵和 `/dev/ttyACM0` 舵机总线后，再手动启动：
+
+```bash
+sudo systemctl start goobo-weight-eye-matrix.service
+```
+
+查看状态和日志：
+
+```bash
+sudo systemctl status goobo-weight-eye-matrix.service
+sudo journalctl -u goobo-weight-eye-matrix.service -f
+```
+
+停止服务：
+
+```bash
+sudo systemctl stop goobo-weight-eye-matrix.service
+```
+
+取消开机自启动：
+
+```bash
+sudo systemctl disable goobo-weight-eye-matrix.service
+```
+
+如果舵机串口不是 `/dev/ttyACM0`，先修改 `config.ini` 里的 `servo_bus.port`，再同步调整 `install_autostart.sh` 生成的 service 依赖。

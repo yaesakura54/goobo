@@ -22,6 +22,7 @@ from hx711 import HX711  # noqa: E402
 
 RGB = Tuple[int, int, int]
 ServoPositions = dict[int, tuple[float, float]]
+Frame = list[tuple[int, int, RGB]]
 
 
 def read_config(path: Path) -> configparser.ConfigParser:
@@ -77,13 +78,20 @@ def single_eye_shapes() -> list[list[tuple[int, int]]]:
     return [open_eye, half_open_eye, narrow_eye, [], narrow_eye, half_open_eye, open_eye]
 
 
-def blink_frames(eye_color: RGB, eye_count: int) -> list[list[tuple[int, int, RGB]]]:
-    if eye_count == 1:
+def pixels_to_points(pixel_indexes: Iterable[int], width: int = 8) -> list[tuple[int, int]]:
+    return [(index % width, index // width) for index in pixel_indexes]
+
+
+def expression_frames(expression_id: int, eye_color: RGB) -> list[Frame]:
+    if expression_id == 1:
+        # Extracted from /home/neurobo/test/DEMO.ino eyesLight(): 12..14 and 52..54.
+        shapes = [pixels_to_points([12, 13, 14, 52, 53, 54])]
+    elif expression_id == 2:
         shapes = single_eye_shapes()
-    elif eye_count == 2:
+    elif expression_id == 3:
         shapes = double_eye_shapes()
     else:
-        raise ValueError("display.eye_count must be 1 or 2")
+        raise ValueError("display.expression_id must be 1, 2 or 3")
 
     return [[(x, y, eye_color) for x, y in shape] for shape in shapes]
 
@@ -170,9 +178,9 @@ def main() -> None:
     blink_delay = 1.0 / max(1, config.getint("display", "blink_fps"))
     full_color = parse_rgb(config.get("display", "full_color"))
     background_color = parse_rgb(config.get("display", "background_color"))
-    frames = blink_frames(
+    frames = expression_frames(
+        expression_id=config.getint("display", "expression_id"),
         eye_color=parse_rgb(config.get("display", "eye_color")),
-        eye_count=config.getint("display", "eye_count"),
     )
     frame_index = 0
     mode = None
