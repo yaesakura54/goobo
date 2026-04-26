@@ -41,7 +41,6 @@ SERVICE
 
 systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
+systemctl start "${SERVICE_NAME}"
 
-echo "Installed and enabled ${SERVICE_NAME}."
-echo "The service was not started by this installer."
-echo "Start it on the Raspberry Pi with: sudo systemctl start ${SERVICE_NAME}"
+echo "Installed, enabled and started ${SERVICE_NAME}."

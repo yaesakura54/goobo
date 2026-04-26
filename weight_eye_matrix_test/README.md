@@ -212,11 +212,7 @@ cd /home/neurobo/test/goobo/weight_eye_matrix_test
 sudo ./install_autostart.sh
 ```
 
-安装脚本只会执行 `systemctl enable`，不会立即启动服务。确认树莓派已经接好 HX711、LED 点阵和 `/dev/ttyACM0` 舵机总线后，再手动启动：
-
-```bash
-sudo systemctl start goobo-weight-eye-matrix.service
-```
+安装脚本会执行 `systemctl enable` 和 `systemctl start`。运行安装脚本前，先确认树莓派已经接好 HX711、LED 点阵和 `/dev/ttyACM0` 舵机总线。
 
 查看状态和日志：
 
