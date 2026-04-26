@@ -247,11 +247,12 @@ def ramp_startup_servos(
     gap_seconds: float,
     move_mode: str,
     current_degrees: ServoDegrees | None = None,
+    config_prefix: str = "servo_bus.startup",
 ) -> None:
     if step_degrees <= 0:
-        raise ValueError("servo_bus.startup_step_degrees must be > 0")
+        raise ValueError(f"{config_prefix}_step_degrees must be > 0")
     if step_delay < 0:
-        raise ValueError("servo_bus.startup_step_delay must be >= 0")
+        raise ValueError(f"{config_prefix}_step_delay must be >= 0")
 
     if current_degrees is None:
         current_degrees = read_servo_degrees(bus, move_order)
@@ -337,6 +338,10 @@ def main() -> None:
     servo_speed = 0
     servo_gap_seconds = 0.0
     servo_move_mode = "together"
+    servo_ramp_enabled = False
+    servo_ramp_step_degrees = 1.0
+    servo_ramp_step_delay = 0.04
+    servo_ramp_step_time_ms = 150
     hx = None
     matrix = None
 
@@ -348,6 +353,10 @@ def main() -> None:
             servo_speed = config.getint("servo_bus", "speed")
             servo_gap_seconds = config.getfloat("servo_bus", "move_gap_seconds")
             servo_move_mode = parse_move_mode(config)
+            servo_ramp_enabled = config.getboolean("servo_bus", "ramp_enabled", fallback=False)
+            servo_ramp_step_degrees = config.getfloat("servo_bus", "ramp_step_degrees", fallback=1.0)
+            servo_ramp_step_delay = config.getfloat("servo_bus", "ramp_step_delay", fallback=0.04)
+            servo_ramp_step_time_ms = config.getint("servo_bus", "ramp_step_time_ms", fallback=150)
             startup_position = parse_startup_position(config)
             startup_move_time_ms = config.getint("servo_bus", "startup_move_time_ms", fallback=servo_move_time_ms)
             startup_speed = config.getint("servo_bus", "startup_speed", fallback=servo_speed)
@@ -377,6 +386,7 @@ def main() -> None:
                         gap_seconds=servo_gap_seconds,
                         move_mode=servo_move_mode,
                         current_degrees=startup_current_degrees,
+                        config_prefix="servo_bus.startup",
                     )
                 else:
                     move_servos(
@@ -429,16 +439,31 @@ def main() -> None:
                     matrix.draw_pixels([], background=full_color)
                     mode = "full"
                 if servo_bus is not None and servo_state != "initial":
-                    move_servos(
-                        bus=servo_bus,
-                        positions=servo_positions,
-                        move_order=servo_move_order,
-                        use_initial_angle=True,
-                        move_time_ms=servo_move_time_ms,
-                        speed=servo_speed,
-                        gap_seconds=servo_gap_seconds,
-                        move_mode=servo_move_mode,
-                    )
+                    if servo_ramp_enabled:
+                        ramp_startup_servos(
+                            bus=servo_bus,
+                            positions=servo_positions,
+                            move_order=servo_move_order,
+                            use_initial_angle=True,
+                            step_degrees=servo_ramp_step_degrees,
+                            step_delay=servo_ramp_step_delay,
+                            step_time_ms=servo_ramp_step_time_ms,
+                            speed=servo_speed,
+                            gap_seconds=servo_gap_seconds,
+                            move_mode=servo_move_mode,
+                            config_prefix="servo_bus.ramp",
+                        )
+                    else:
+                        move_servos(
+                            bus=servo_bus,
+                            positions=servo_positions,
+                            move_order=servo_move_order,
+                            use_initial_angle=True,
+                            move_time_ms=servo_move_time_ms,
+                            speed=servo_speed,
+                            gap_seconds=servo_gap_seconds,
+                            move_mode=servo_move_mode,
+                        )
                     servo_state = "initial"
                 time.sleep(poll_interval)
                 continue
@@ -453,16 +478,31 @@ def main() -> None:
             matrix.draw_pixels(frames[frame_index % len(frames)], background=background_color)
             frame_index += 1
             if servo_bus is not None and servo_state != "target":
-                move_servos(
-                    bus=servo_bus,
-                    positions=servo_positions,
-                    move_order=servo_move_order,
-                    use_initial_angle=False,
-                    move_time_ms=servo_move_time_ms,
-                    speed=servo_speed,
-                    gap_seconds=servo_gap_seconds,
-                    move_mode=servo_move_mode,
-                )
+                if servo_ramp_enabled:
+                    ramp_startup_servos(
+                        bus=servo_bus,
+                        positions=servo_positions,
+                        move_order=servo_move_order,
+                        use_initial_angle=False,
+                        step_degrees=servo_ramp_step_degrees,
+                        step_delay=servo_ramp_step_delay,
+                        step_time_ms=servo_ramp_step_time_ms,
+                        speed=servo_speed,
+                        gap_seconds=servo_gap_seconds,
+                        move_mode=servo_move_mode,
+                        config_prefix="servo_bus.ramp",
+                    )
+                else:
+                    move_servos(
+                        bus=servo_bus,
+                        positions=servo_positions,
+                        move_order=servo_move_order,
+                        use_initial_angle=False,
+                        move_time_ms=servo_move_time_ms,
+                        speed=servo_speed,
+                        gap_seconds=servo_gap_seconds,
+                        move_mode=servo_move_mode,
+                    )
                 servo_state = "target"
             time.sleep(blink_delay)
 

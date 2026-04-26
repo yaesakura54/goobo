@@ -42,6 +42,10 @@ baud = 1000000
 move_time_ms = 2500
 move_gap_seconds = 0.4
 move_mode = together
+ramp_enabled = true
+ramp_step_degrees = 1.0
+ramp_step_delay = 0.04
+ramp_step_time_ms = 150
 speed = 0
 enable_torque = true
 startup_position = initial
@@ -86,6 +90,10 @@ max_bytes = 1048576
 - `servo_bus.move_time_ms`: 单个舵机移动到目标角度的时间，数值越大转得越慢。
 - `servo_bus.move_gap_seconds`: `move_mode = sequence` 时，一个舵机发出移动命令后，到下一个舵机发命令前的等待时间。
 - `servo_bus.move_mode`: 舵机动作方式，`together` 是快速连续发出所有舵机命令，`sequence` 是按顺序间隔启动。
+- `servo_bus.ramp_enabled`: 是否启用高/低阈值切换时的分步移动。启用后不再只依赖单条舵机命令的 `move_time_ms`。
+- `servo_bus.ramp_step_degrees`: 高/低阈值切换分步移动时，每一步最大角度变化。数值越小越丝滑也越慢。
+- `servo_bus.ramp_step_delay`: 高/低阈值切换分步移动时，每一步之间的等待秒数。
+- `servo_bus.ramp_step_time_ms`: 高/低阈值切换分步移动时，每一步发给舵机的移动时间。
 - `servo_bus.speed`: 舵机速度参数，默认 `0`。
 - `servo_bus.enable_torque`: 启动时是否给配置的舵机开启扭矩。
 - `servo_bus.startup_position`: 服务启动时先移动到哪组角度，可选 `initial`、`target`、`none`。
@@ -108,6 +116,8 @@ max_bytes = 1048576
 如果启动时舵机可能离初始角度很远，保持 `startup_ramp_enabled = true`。程序会读取当前位置并分步回到初始角度，避免单条目标角度命令让结构快速冲击。想更慢可以减小 `startup_step_degrees`，或增大 `startup_step_delay`。
 
 启用启动分步回位时，程序会先把当前舵机位置写成临时目标，再开启扭矩，避免舵机上电后追上一次残留目标角度。
+
+高/低阈值切换时默认也启用分步移动。想更丝滑可以减小 `ramp_step_degrees`，例如 `0.5`；想更快可以增大到 `2.0` 或关闭 `ramp_enabled`。
 
 舵机角度示例：
 
