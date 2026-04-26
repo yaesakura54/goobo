@@ -36,6 +36,10 @@ Type=simple
 User=root
 WorkingDirectory=${SCRIPT_DIR}
 ExecStart=/usr/bin/python3 -u ${APP_SCRIPT} --config ${CONFIG_FILE}
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=10
 
 [Install]
 WantedBy=basic.target

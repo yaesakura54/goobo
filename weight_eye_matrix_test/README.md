@@ -213,6 +213,8 @@ Ubuntu 25 使用 systemd 管理开机服务。安装脚本会创建并启用：
 
 服务会挂到 `basic.target`，并等待 `/dev/ttyACM0` 出现后启动，比普通 `multi-user.target` 服务更早运行。
 
+如果程序异常退出，systemd 会在 5 秒后自动重启服务。为避免硬件持续故障时反复重启，服务限制为 60 秒内最多重启 10 次。
+
 安装：
 
 ```bash
@@ -227,6 +229,12 @@ sudo ./install_autostart.sh
 ```bash
 sudo systemctl status goobo-weight-eye-matrix.service
 sudo journalctl -u goobo-weight-eye-matrix.service -f
+```
+
+查看最近的重启和错误日志：
+
+```bash
+sudo journalctl -u goobo-weight-eye-matrix.service -n 100 --no-pager
 ```
 
 停止服务：
