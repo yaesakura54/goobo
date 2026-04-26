@@ -26,8 +26,10 @@ fi
 cat > "${SERVICE_PATH}" <<SERVICE
 [Unit]
 Description=Goobo weight, eye matrix and servo linkage
-After=dev-ttyACM0.device
+DefaultDependencies=no
+After=local-fs.target dev-ttyACM0.device
 Requires=dev-ttyACM0.device
+Before=multi-user.target
 
 [Service]
 Type=simple
@@ -36,7 +38,7 @@ WorkingDirectory=${SCRIPT_DIR}
 ExecStart=/usr/bin/python3 -u ${APP_SCRIPT} --config ${CONFIG_FILE}
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=basic.target
 SERVICE
 
 systemctl daemon-reload

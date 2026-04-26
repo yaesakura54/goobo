@@ -211,6 +211,8 @@ Ubuntu 25 使用 systemd 管理开机服务。安装脚本会创建并启用：
 /etc/systemd/system/goobo-weight-eye-matrix.service
 ```
 
+服务会挂到 `basic.target`，并等待 `/dev/ttyACM0` 出现后启动，比普通 `multi-user.target` 服务更早运行。
+
 安装：
 
 ```bash
