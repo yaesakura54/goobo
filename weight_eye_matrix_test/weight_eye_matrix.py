@@ -189,6 +189,13 @@ def parse_startup_position(config: configparser.ConfigParser) -> str:
     return startup_position
 
 
+def parse_move_mode(config: configparser.ConfigParser) -> str:
+    move_mode = config.get("servo_bus", "move_mode", fallback="together").strip().lower()
+    if move_mode not in {"together", "sequence"}:
+        raise ValueError("servo_bus.move_mode must be together or sequence")
+    return move_mode
+
+
 def move_servos(
     bus: BusServo,
     positions: ServoPositions,
@@ -197,6 +204,7 @@ def move_servos(
     move_time_ms: int,
     speed: int,
     gap_seconds: float,
+    move_mode: str,
 ) -> None:
     target_name = "initial" if use_initial_angle else "target"
     for index, servo_id in enumerate(move_order):
@@ -208,7 +216,7 @@ def move_servos(
         bus.move_to_raw(servo_id, bus.degrees_to_raw(degrees), time_ms=move_time_ms, speed=speed)
         print(f"servo id={servo_id} move {target_name} degrees={degrees:.2f}")
 
-        if index < len(move_order) - 1:
+        if move_mode == "sequence" and index < len(move_order) - 1:
             time.sleep(gap_seconds)
 
 
@@ -257,6 +265,7 @@ def main() -> None:
     servo_move_time_ms = 0
     servo_speed = 0
     servo_gap_seconds = 0.0
+    servo_move_mode = "together"
     hx = None
     matrix = None
 
@@ -267,6 +276,7 @@ def main() -> None:
             servo_move_time_ms = config.getint("servo_bus", "move_time_ms")
             servo_speed = config.getint("servo_bus", "speed")
             servo_gap_seconds = config.getfloat("servo_bus", "move_gap_seconds")
+            servo_move_mode = parse_move_mode(config)
             startup_position = parse_startup_position(config)
             servo_bus = BusServo(
                 port=config.get("servo_bus", "port"),
@@ -284,6 +294,7 @@ def main() -> None:
                     move_time_ms=servo_move_time_ms,
                     speed=servo_speed,
                     gap_seconds=servo_gap_seconds,
+                    move_mode=servo_move_mode,
                 )
                 servo_state = startup_position
 
@@ -333,6 +344,7 @@ def main() -> None:
                         move_time_ms=servo_move_time_ms,
                         speed=servo_speed,
                         gap_seconds=servo_gap_seconds,
+                        move_mode=servo_move_mode,
                     )
                     servo_state = "initial"
                 time.sleep(poll_interval)
@@ -356,6 +368,7 @@ def main() -> None:
                     move_time_ms=servo_move_time_ms,
                     speed=servo_speed,
                     gap_seconds=servo_gap_seconds,
+                    move_mode=servo_move_mode,
                 )
                 servo_state = "target"
             time.sleep(blink_delay)

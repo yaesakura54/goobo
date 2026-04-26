@@ -41,6 +41,7 @@ port = /dev/ttyACM0
 baud = 1000000
 move_time_ms = 2500
 move_gap_seconds = 0.4
+move_mode = together
 speed = 0
 enable_torque = true
 startup_position = initial
@@ -77,7 +78,8 @@ max_bytes = 1048576
 - `servo_bus.port`: 舵机串口，默认 `/dev/ttyACM0`。
 - `servo_bus.baud`: 舵机串口波特率，默认 `1000000`。
 - `servo_bus.move_time_ms`: 单个舵机移动到目标角度的时间，数值越大转得越慢。
-- `servo_bus.move_gap_seconds`: 一个舵机发出移动命令后，到下一个舵机发命令前的等待时间。
+- `servo_bus.move_gap_seconds`: `move_mode = sequence` 时，一个舵机发出移动命令后，到下一个舵机发命令前的等待时间。
+- `servo_bus.move_mode`: 舵机动作方式，`together` 是快速连续发出所有舵机命令，`sequence` 是按顺序间隔启动。
 - `servo_bus.speed`: 舵机速度参数，默认 `0`。
 - `servo_bus.enable_torque`: 启动时是否给配置的舵机开启扭矩。
 - `servo_bus.startup_position`: 服务启动时先移动到哪组角度，可选 `initial`、`target`、`none`。
