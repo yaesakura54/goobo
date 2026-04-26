@@ -32,7 +32,7 @@ LED 点阵通常需要 root 权限访问 PWM/GPIO，建议用 `sudo` 运行。
 ```ini
 [display]
 threshold = 90.0
-eye_color = 255,0,0
+eye_color = 0,0,255
 expression_id = 1
 
 [servo_bus]
@@ -69,7 +69,7 @@ max_bytes = 1048576
 - `matrix.brightness`: LED 亮度，范围 `0..255`。
 - `display.threshold`: 重量阈值，默认 `90.0`。
 - `display.full_color`: 全亮颜色，格式 `R,G,B`。
-- `display.eye_color`: 眼睛颜色，格式 `R,G,B`，默认红色 `255,0,0`。
+- `display.eye_color`: 眼睛颜色，格式 `R,G,B`，默认蓝色 `0,0,255`。
 - `display.expression_id`: 小于等于阈值时使用的表情编号。
 - `display.blink_fps`: 眨眼动画速度。
 - `servo_bus.enabled`: 是否启用舵机联动。
