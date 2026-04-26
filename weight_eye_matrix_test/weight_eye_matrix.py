@@ -80,14 +80,47 @@ def single_eye_shapes() -> list[list[tuple[int, int]]]:
     return [open_eye, half_open_eye, narrow_eye, [], narrow_eye, half_open_eye, open_eye]
 
 
-def pixels_to_points(pixel_indexes: Iterable[int], width: int = 8) -> list[tuple[int, int]]:
-    return [(index % width, index // width) for index in pixel_indexes]
+def strip_indexes_to_points(
+    pixel_indexes: Iterable[int],
+    width: int = 8,
+    height: int = 8,
+    zigzag: bool = True,
+    flip_x: bool = False,
+    flip_y: bool = False,
+) -> list[tuple[int, int]]:
+    points = []
+    for index in pixel_indexes:
+        x = index % width
+        y = index // width
+        if not 0 <= y < height:
+            raise ValueError(f"pixel index out of range: {index}")
+        if zigzag and (y % 2 == 1):
+            x = width - 1 - x
+        if flip_y:
+            y = height - 1 - y
+        if flip_x:
+            x = width - 1 - x
+        points.append((x, y))
+    return points
 
 
-def expression_frames(expression_id: int, eye_color: RGB) -> list[Frame]:
+def expression_frames(
+    expression_id: int,
+    eye_color: RGB,
+    zigzag: bool,
+    flip_x: bool,
+    flip_y: bool,
+) -> list[Frame]:
     if expression_id == 1:
         # Extracted from /home/neurobo/test/DEMO.ino eyesLight(): 12..14 and 52..54.
-        shapes = [pixels_to_points([12, 13, 14, 52, 53, 54])]
+        shapes = [
+            strip_indexes_to_points(
+                [12, 13, 14, 52, 53, 54],
+                zigzag=zigzag,
+                flip_x=flip_x,
+                flip_y=flip_y,
+            )
+        ]
     elif expression_id == 2:
         shapes = single_eye_shapes()
     elif expression_id == 3:
@@ -188,6 +221,10 @@ def main() -> None:
         pd_sck_pin=config.getint("hx711", "sck_pin"),
         gain=config.getint("hx711", "gain"),
     )
+    matrix_zigzag = config.getboolean("matrix", "zigzag")
+    matrix_flip_x = config.getboolean("matrix", "flip_x")
+    matrix_flip_y = config.getboolean("matrix", "flip_y")
+
     matrix = EyeMatrix(
         pin=config.getint("matrix", "pin"),
         freq_hz=config.getint("matrix", "freq_hz"),
@@ -195,9 +232,9 @@ def main() -> None:
         brightness=max(0, min(255, config.getint("matrix", "brightness"))),
         invert=config.getboolean("matrix", "invert"),
         channel=config.getint("matrix", "channel"),
-        zigzag=config.getboolean("matrix", "zigzag"),
-        flip_x=config.getboolean("matrix", "flip_x"),
-        flip_y=config.getboolean("matrix", "flip_y"),
+        zigzag=matrix_zigzag,
+        flip_x=matrix_flip_x,
+        flip_y=matrix_flip_y,
     )
 
     threshold = config.getfloat("display", "threshold")
@@ -209,6 +246,9 @@ def main() -> None:
     frames = expression_frames(
         expression_id=config.getint("display", "expression_id"),
         eye_color=parse_rgb(config.get("display", "eye_color")),
+        zigzag=matrix_zigzag,
+        flip_x=matrix_flip_x,
+        flip_y=matrix_flip_y,
     )
     frame_index = 0
     mode = None

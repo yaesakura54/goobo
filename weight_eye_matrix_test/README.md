@@ -114,7 +114,7 @@ move_gap_seconds = 0.2
 
 表情编号：
 
-- `1`: 从 `/home/neurobo/test/DEMO.ino` 提取的静态眼睛，像素编号 `12,13,14,52,53,54`。
+- `1`: 从 `/home/neurobo/test/DEMO.ino` 提取的静态眼睛，使用原始 NeoPixel 编号 `12,13,14,52,53,54`，程序会按 `matrix.zigzag/flip_x/flip_y` 自动转换。
 - `2`: 一只 8x8 中央大眼睛眨眼。
 - `3`: 左右两只小眼睛眨眼。
 
