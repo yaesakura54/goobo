@@ -45,6 +45,8 @@ move_mode = together
 speed = 0
 enable_torque = true
 startup_position = initial
+startup_move_time_ms = 6000
+startup_speed = 0
 move_order = 1,2,3,4,5
 
 [servo_positions]
@@ -83,6 +85,8 @@ max_bytes = 1048576
 - `servo_bus.speed`: 舵机速度参数，默认 `0`。
 - `servo_bus.enable_torque`: 启动时是否给配置的舵机开启扭矩。
 - `servo_bus.startup_position`: 服务启动时先移动到哪组角度，可选 `initial`、`target`、`none`。
+- `servo_bus.startup_move_time_ms`: 启动时移动到 `startup_position` 的时间，数值越大启动回位越慢。
+- `servo_bus.startup_speed`: 启动时移动到 `startup_position` 的速度参数。
 - `servo_bus.move_order`: 舵机动作顺序，默认从 `1` 到 `5`。
 - `servo_positions`: 每行格式是 `舵机ID = 初始角度,目标角度`。
 - `logging.enabled`: 是否写入日志文件。

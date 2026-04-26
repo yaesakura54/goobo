@@ -278,6 +278,8 @@ def main() -> None:
             servo_gap_seconds = config.getfloat("servo_bus", "move_gap_seconds")
             servo_move_mode = parse_move_mode(config)
             startup_position = parse_startup_position(config)
+            startup_move_time_ms = config.getint("servo_bus", "startup_move_time_ms", fallback=servo_move_time_ms)
+            startup_speed = config.getint("servo_bus", "startup_speed", fallback=servo_speed)
             servo_bus = BusServo(
                 port=config.get("servo_bus", "port"),
                 baud=config.getint("servo_bus", "baud"),
@@ -291,8 +293,8 @@ def main() -> None:
                     positions=servo_positions,
                     move_order=servo_move_order,
                     use_initial_angle=startup_position == "initial",
-                    move_time_ms=servo_move_time_ms,
-                    speed=servo_speed,
+                    move_time_ms=startup_move_time_ms,
+                    speed=startup_speed,
                     gap_seconds=servo_gap_seconds,
                     move_mode=servo_move_mode,
                 )
