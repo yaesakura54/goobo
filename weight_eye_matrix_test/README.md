@@ -43,6 +43,7 @@ move_time_ms = 2500
 move_gap_seconds = 0.4
 speed = 0
 enable_torque = true
+startup_position = initial
 move_order = 1,2,3,4,5
 
 [servo_positions]
@@ -54,7 +55,7 @@ move_order = 1,2,3,4,5
 
 [logging]
 enabled = true
-path = /home/neurobo/test/goobo/weight_eye_matrix_test/weight_eye_matrix.log
+path = weight_eye_matrix.log
 max_bytes = 1048576
 ```
 
@@ -79,11 +80,14 @@ max_bytes = 1048576
 - `servo_bus.move_gap_seconds`: 一个舵机发出移动命令后，到下一个舵机发命令前的等待时间。
 - `servo_bus.speed`: 舵机速度参数，默认 `0`。
 - `servo_bus.enable_torque`: 启动时是否给配置的舵机开启扭矩。
+- `servo_bus.startup_position`: 服务启动时先移动到哪组角度，可选 `initial`、`target`、`none`。
 - `servo_bus.move_order`: 舵机动作顺序，默认从 `1` 到 `5`。
 - `servo_positions`: 每行格式是 `舵机ID = 初始角度,目标角度`。
 - `logging.enabled`: 是否写入日志文件。
-- `logging.path`: 日志文件路径。
+- `logging.path`: 日志文件路径。相对路径会按 `config.ini` 所在目录解析。
 - `logging.max_bytes`: 日志文件大小上限。写入前如果达到上限，会清空旧内容再写入新日志。
+
+`startup_position = initial` 只控制服务启动后的第一组舵机动作。程序进入称重循环后，仍然按重量状态切换：高于阈值用初始角度，低于或等于阈值用目标角度。
 
 舵机角度示例：
 

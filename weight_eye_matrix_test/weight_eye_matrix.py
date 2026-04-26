@@ -138,13 +138,17 @@ def parse_int_list(value: str) -> list[int]:
     return ids
 
 
-def parse_logger_config(config: configparser.ConfigParser) -> LoggerConfig:
+def parse_logger_config(config: configparser.ConfigParser, config_dir: Path) -> LoggerConfig:
     if not config.has_section("logging"):
         return (False, BASE_DIR / "weight_eye_matrix.log", 1048576)
 
+    log_path = Path(config.get("logging", "path")).expanduser()
+    if not log_path.is_absolute():
+        log_path = config_dir / log_path
+
     return (
         config.getboolean("logging", "enabled"),
-        Path(config.get("logging", "path")).expanduser(),
+        log_path,
         config.getint("logging", "max_bytes"),
     )
 
@@ -176,6 +180,13 @@ def parse_servo_positions(config: configparser.ConfigParser) -> ServoPositions:
         positions[servo_id] = (float(parts[0]), float(parts[1]))
 
     return positions
+
+
+def parse_startup_position(config: configparser.ConfigParser) -> str:
+    startup_position = config.get("servo_bus", "startup_position", fallback="none").strip().lower()
+    if startup_position not in {"initial", "target", "none"}:
+        raise ValueError("servo_bus.startup_position must be initial, target or none")
+    return startup_position
 
 
 def move_servos(
@@ -214,7 +225,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    config = read_config(args.config.expanduser().resolve())
+    config_path = args.config.expanduser().resolve()
+    config = read_config(config_path)
 
     hx = HX711(
         dout_pin=config.getint("hx711", "dout_pin"),
@@ -242,7 +254,7 @@ def main() -> None:
     blink_delay = 1.0 / max(1, config.getint("display", "blink_fps"))
     full_color = parse_rgb(config.get("display", "full_color"))
     background_color = parse_rgb(config.get("display", "background_color"))
-    logger_config = parse_logger_config(config)
+    logger_config = parse_logger_config(config, config_path.parent)
     frames = expression_frames(
         expression_id=config.getint("display", "expression_id"),
         eye_color=parse_rgb(config.get("display", "eye_color")),
@@ -269,6 +281,7 @@ def main() -> None:
             servo_move_time_ms = config.getint("servo_bus", "move_time_ms")
             servo_speed = config.getint("servo_bus", "speed")
             servo_gap_seconds = config.getfloat("servo_bus", "move_gap_seconds")
+            startup_position = parse_startup_position(config)
             servo_bus = BusServo(
                 port=config.get("servo_bus", "port"),
                 baud=config.getint("servo_bus", "baud"),
@@ -276,6 +289,17 @@ def main() -> None:
             if config.getboolean("servo_bus", "enable_torque"):
                 for servo_id in servo_move_order:
                     servo_bus.enable_torque(servo_id, True)
+            if startup_position != "none":
+                move_servos(
+                    bus=servo_bus,
+                    positions=servo_positions,
+                    move_order=servo_move_order,
+                    use_initial_angle=startup_position == "initial",
+                    move_time_ms=servo_move_time_ms,
+                    speed=servo_speed,
+                    gap_seconds=servo_gap_seconds,
+                )
+                servo_state = startup_position
 
         print("Keep the scale empty, tare start...")
         hx.tare(times=config.getint("hx711", "tare_times"))
