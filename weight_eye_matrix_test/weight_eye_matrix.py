@@ -228,33 +228,16 @@ def main() -> None:
     config_path = args.config.expanduser().resolve()
     config = read_config(config_path)
 
-    hx = HX711(
-        dout_pin=config.getint("hx711", "dout_pin"),
-        pd_sck_pin=config.getint("hx711", "sck_pin"),
-        gain=config.getint("hx711", "gain"),
-    )
-    matrix_zigzag = config.getboolean("matrix", "zigzag")
-    matrix_flip_x = config.getboolean("matrix", "flip_x")
-    matrix_flip_y = config.getboolean("matrix", "flip_y")
-
-    matrix = EyeMatrix(
-        pin=config.getint("matrix", "pin"),
-        freq_hz=config.getint("matrix", "freq_hz"),
-        dma=config.getint("matrix", "dma"),
-        brightness=max(0, min(255, config.getint("matrix", "brightness"))),
-        invert=config.getboolean("matrix", "invert"),
-        channel=config.getint("matrix", "channel"),
-        zigzag=matrix_zigzag,
-        flip_x=matrix_flip_x,
-        flip_y=matrix_flip_y,
-    )
-
     threshold = config.getfloat("display", "threshold")
     poll_interval = config.getfloat("display", "poll_interval")
     blink_delay = 1.0 / max(1, config.getint("display", "blink_fps"))
     full_color = parse_rgb(config.get("display", "full_color"))
     background_color = parse_rgb(config.get("display", "background_color"))
     logger_config = parse_logger_config(config, config_path.parent)
+
+    matrix_zigzag = config.getboolean("matrix", "zigzag")
+    matrix_flip_x = config.getboolean("matrix", "flip_x")
+    matrix_flip_y = config.getboolean("matrix", "flip_y")
     frames = expression_frames(
         expression_id=config.getint("display", "expression_id"),
         eye_color=parse_rgb(config.get("display", "eye_color")),
@@ -262,6 +245,7 @@ def main() -> None:
         flip_x=matrix_flip_x,
         flip_y=matrix_flip_y,
     )
+
     frame_index = 0
     mode = None
     weight_state = None
@@ -273,6 +257,8 @@ def main() -> None:
     servo_move_time_ms = 0
     servo_speed = 0
     servo_gap_seconds = 0.0
+    hx = None
+    matrix = None
 
     try:
         if servo_enabled:
@@ -300,6 +286,23 @@ def main() -> None:
                     gap_seconds=servo_gap_seconds,
                 )
                 servo_state = startup_position
+
+        hx = HX711(
+            dout_pin=config.getint("hx711", "dout_pin"),
+            pd_sck_pin=config.getint("hx711", "sck_pin"),
+            gain=config.getint("hx711", "gain"),
+        )
+        matrix = EyeMatrix(
+            pin=config.getint("matrix", "pin"),
+            freq_hz=config.getint("matrix", "freq_hz"),
+            dma=config.getint("matrix", "dma"),
+            brightness=max(0, min(255, config.getint("matrix", "brightness"))),
+            invert=config.getboolean("matrix", "invert"),
+            channel=config.getint("matrix", "channel"),
+            zigzag=matrix_zigzag,
+            flip_x=matrix_flip_x,
+            flip_y=matrix_flip_y,
+        )
 
         print("Keep the scale empty, tare start...")
         hx.tare(times=config.getint("hx711", "tare_times"))
@@ -361,8 +364,10 @@ def main() -> None:
         print("Exit")
 
     finally:
-        matrix.clear()
-        hx.cleanup()
+        if matrix is not None:
+            matrix.clear()
+        if hx is not None:
+            hx.cleanup()
         if servo_bus is not None:
             servo_bus.close()
 
