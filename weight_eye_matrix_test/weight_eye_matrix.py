@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import math
 import sys
 import time
 from datetime import datetime
@@ -25,6 +26,7 @@ RGB = Tuple[int, int, int]
 ServoPositions = dict[int, tuple[float, float]]
 Frame = list[tuple[int, int, RGB]]
 LoggerConfig = tuple[bool, Path, int]
+ServoDegrees = dict[int, float]
 
 
 def read_config(path: Path) -> configparser.ConfigParser:
@@ -196,6 +198,19 @@ def parse_move_mode(config: configparser.ConfigParser) -> str:
     return move_mode
 
 
+def read_servo_degrees(bus: BusServo, move_order: list[int]) -> ServoDegrees:
+    return {
+        servo_id: bus.raw_to_degrees(bus.read_position(servo_id))
+        for servo_id in move_order
+    }
+
+
+def hold_current_servos(bus: BusServo, current_degrees: ServoDegrees, move_order: list[int]) -> None:
+    for servo_id in move_order:
+        degrees = current_degrees[servo_id]
+        bus.move_to_raw(servo_id, bus.degrees_to_raw(degrees), time_ms=0, speed=0)
+
+
 def move_servos(
     bus: BusServo,
     positions: ServoPositions,
@@ -218,6 +233,62 @@ def move_servos(
 
         if move_mode == "sequence" and index < len(move_order) - 1:
             time.sleep(gap_seconds)
+
+
+def ramp_startup_servos(
+    bus: BusServo,
+    positions: ServoPositions,
+    move_order: list[int],
+    use_initial_angle: bool,
+    step_degrees: float,
+    step_delay: float,
+    step_time_ms: int,
+    speed: int,
+    gap_seconds: float,
+    move_mode: str,
+    current_degrees: ServoDegrees | None = None,
+) -> None:
+    if step_degrees <= 0:
+        raise ValueError("servo_bus.startup_step_degrees must be > 0")
+    if step_delay < 0:
+        raise ValueError("servo_bus.startup_step_delay must be >= 0")
+
+    if current_degrees is None:
+        current_degrees = read_servo_degrees(bus, move_order)
+
+    target_degrees: dict[int, float] = {}
+    max_delta = 0.0
+
+    for servo_id in move_order:
+        if servo_id not in positions:
+            raise ValueError(f"servo id {servo_id} is in move_order but missing from servo_positions")
+
+        initial_degrees, target = positions[servo_id]
+        destination = initial_degrees if use_initial_angle else target
+        current = current_degrees[servo_id]
+        current_degrees[servo_id] = current
+        target_degrees[servo_id] = destination
+        max_delta = max(max_delta, abs(destination - current))
+
+    if max_delta == 0:
+        return
+
+    steps = max(1, math.ceil(max_delta / step_degrees))
+    target_name = "initial" if use_initial_angle else "target"
+
+    for step in range(1, steps + 1):
+        ratio = step / steps
+        for index, servo_id in enumerate(move_order):
+            current = current_degrees[servo_id]
+            destination = target_degrees[servo_id]
+            degrees = current + (destination - current) * ratio
+            bus.move_to_raw(servo_id, bus.degrees_to_raw(degrees), time_ms=step_time_ms, speed=speed)
+
+            if move_mode == "sequence" and index < len(move_order) - 1:
+                time.sleep(gap_seconds)
+
+        print(f"startup ramp {target_name} step={step}/{steps}")
+        time.sleep(step_delay)
 
 
 def parse_args() -> argparse.Namespace:
@@ -280,24 +351,44 @@ def main() -> None:
             startup_position = parse_startup_position(config)
             startup_move_time_ms = config.getint("servo_bus", "startup_move_time_ms", fallback=servo_move_time_ms)
             startup_speed = config.getint("servo_bus", "startup_speed", fallback=servo_speed)
+            startup_ramp_enabled = config.getboolean("servo_bus", "startup_ramp_enabled", fallback=False)
             servo_bus = BusServo(
                 port=config.get("servo_bus", "port"),
                 baud=config.getint("servo_bus", "baud"),
             )
+            startup_current_degrees = None
+            if startup_position != "none" and startup_ramp_enabled:
+                startup_current_degrees = read_servo_degrees(servo_bus, servo_move_order)
+                hold_current_servos(servo_bus, startup_current_degrees, servo_move_order)
             if config.getboolean("servo_bus", "enable_torque"):
                 for servo_id in servo_move_order:
                     servo_bus.enable_torque(servo_id, True)
             if startup_position != "none":
-                move_servos(
-                    bus=servo_bus,
-                    positions=servo_positions,
-                    move_order=servo_move_order,
-                    use_initial_angle=startup_position == "initial",
-                    move_time_ms=startup_move_time_ms,
-                    speed=startup_speed,
-                    gap_seconds=servo_gap_seconds,
-                    move_mode=servo_move_mode,
-                )
+                if startup_ramp_enabled:
+                    ramp_startup_servos(
+                        bus=servo_bus,
+                        positions=servo_positions,
+                        move_order=servo_move_order,
+                        use_initial_angle=startup_position == "initial",
+                        step_degrees=config.getfloat("servo_bus", "startup_step_degrees"),
+                        step_delay=config.getfloat("servo_bus", "startup_step_delay"),
+                        step_time_ms=config.getint("servo_bus", "startup_step_time_ms"),
+                        speed=startup_speed,
+                        gap_seconds=servo_gap_seconds,
+                        move_mode=servo_move_mode,
+                        current_degrees=startup_current_degrees,
+                    )
+                else:
+                    move_servos(
+                        bus=servo_bus,
+                        positions=servo_positions,
+                        move_order=servo_move_order,
+                        use_initial_angle=startup_position == "initial",
+                        move_time_ms=startup_move_time_ms,
+                        speed=startup_speed,
+                        gap_seconds=servo_gap_seconds,
+                        move_mode=servo_move_mode,
+                    )
                 servo_state = startup_position
 
         hx = HX711(

@@ -47,6 +47,10 @@ enable_torque = true
 startup_position = initial
 startup_move_time_ms = 6000
 startup_speed = 0
+startup_ramp_enabled = true
+startup_step_degrees = 2.0
+startup_step_delay = 0.08
+startup_step_time_ms = 300
 move_order = 1,2,3,4,5
 
 [servo_positions]
@@ -87,6 +91,10 @@ max_bytes = 1048576
 - `servo_bus.startup_position`: 服务启动时先移动到哪组角度，可选 `initial`、`target`、`none`。
 - `servo_bus.startup_move_time_ms`: 启动时移动到 `startup_position` 的时间，数值越大启动回位越慢。
 - `servo_bus.startup_speed`: 启动时移动到 `startup_position` 的速度参数。
+- `servo_bus.startup_ramp_enabled`: 是否启用启动分步回位。启用后程序会先读取当前舵机角度，再按小步移动到 `startup_position`。
+- `servo_bus.startup_step_degrees`: 启动分步回位时，每一步最大角度变化。数值越小越慢。
+- `servo_bus.startup_step_delay`: 启动分步回位时，每一步之间的等待秒数。
+- `servo_bus.startup_step_time_ms`: 启动分步回位时，每一步发给舵机的移动时间。
 - `servo_bus.move_order`: 舵机动作顺序，默认从 `1` 到 `5`。
 - `servo_positions`: 每行格式是 `舵机ID = 初始角度,目标角度`。
 - `logging.enabled`: 是否写入日志文件。
@@ -96,6 +104,10 @@ max_bytes = 1048576
 `startup_position = initial` 只控制服务启动后的第一组舵机动作。程序进入称重循环后，仍然按重量状态切换：高于阈值用初始角度，低于或等于阈值用目标角度。
 
 程序启动时会优先初始化舵机、开启扭矩并执行 `startup_position`，然后再初始化 HX711 和 LED 点阵。这样自启动时舵机会尽快撑住结构。
+
+如果启动时舵机可能离初始角度很远，保持 `startup_ramp_enabled = true`。程序会读取当前位置并分步回到初始角度，避免单条目标角度命令让结构快速冲击。想更慢可以减小 `startup_step_degrees`，或增大 `startup_step_delay`。
+
+启用启动分步回位时，程序会先把当前舵机位置写成临时目标，再开启扭矩，避免舵机上电后追上一次残留目标角度。
 
 舵机角度示例：
 
