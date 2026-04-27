@@ -2,6 +2,17 @@
 
 这个目录按硬件模块存放 Goobo 的独立测试脚本。每个子目录都可以单独进入后运行，不依赖统一的应用启动流程。
 
+## 环境安装
+
+树莓派 Ubuntu 25 首次使用时，先在项目根目录安装系统和 Python 依赖：
+
+```bash
+cd /home/neurobo/test/goobo
+sudo ./install_environment.sh
+```
+
+这个脚本会安装基础编译环境、OpenSSL、OpenGL 开发库、GPIO/WS281x/串口 Python 依赖、CSI 相机命令、ffmpeg、PulseAudio、ALSA 和 Python 音频依赖。
+
 ## 目录结构
 
 - `bus_servo_test/`: 总线舵机测试，包含 ID 设置、角度读取、串口调试。
