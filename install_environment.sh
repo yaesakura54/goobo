@@ -20,7 +20,9 @@ apt-get install -y \
     python3-dev \
     python3-pip \
     python3-setuptools \
+    python3-cffi \
     python3-numpy \
+    python3-pycparser \
     python3-serial \
     python3-rpi-lgpio \
     python3-rpi-ws281x \
@@ -32,10 +34,11 @@ apt-get install -y \
     pulseaudio-utils \
     libpulse-dev \
     alsa-utils \
+    libportaudio2 \
     portaudio19-dev
 
 echo "Installing Goobo Python audio dependency..."
-python3 -m pip install --break-system-packages sounddevice
+python3 -m pip install --break-system-packages --resume-retries 10 --timeout 120 sounddevice
 
 TARGET_USER="${SUDO_USER:-$USER}"
 HARDWARE_GROUPS=(dialout video audio render gpio i2c spi)

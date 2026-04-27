@@ -13,6 +13,12 @@ sudo ./install_environment.sh
 
 这个脚本会安装基础编译环境、OpenSSL、OpenGL 开发库、GPIO/WS281x/串口 Python 依赖、CSI 相机命令、ffmpeg、PulseAudio、ALSA 和 Python 音频依赖。
 
+如果安装 `sounddevice` 时 PyPI 下载超时，可以指定镜像后重跑：
+
+```bash
+sudo env PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple ./install_environment.sh
+```
+
 脚本还会把执行 `sudo ./install_environment.sh` 的当前用户加入硬件访问用户组：`dialout`、`video`、`audio`、`render`、`gpio`、`i2c`、`spi`。这些组分别用于串口、摄像头、音频、GPU/相机渲染、GPIO、I2C 和 SPI 设备权限。
 
 用户组变更需要重新登录才会生效，最稳妥是安装完成后重启：
