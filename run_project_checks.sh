@@ -66,14 +66,12 @@ cd "${ROOT_DIR}" || exit 1
 
 run_check "python files compile" python3 - <<'PY'
 from pathlib import Path
-import os
-import py_compile
 
 skip_dirs = {".git", ".venv", "venv", "__pycache__"}
 for path in sorted(Path(".").rglob("*.py")):
     if any(part in skip_dirs for part in path.parts):
         continue
-    py_compile.compile(str(path), cfile=os.devnull, doraise=True)
+    compile(path.read_bytes(), str(path), "exec")
     print(path)
 PY
 
