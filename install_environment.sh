@@ -37,4 +37,16 @@ apt-get install -y \
 echo "Installing Goobo Python audio dependency..."
 python3 -m pip install --break-system-packages sounddevice
 
+TARGET_USER="${SUDO_USER:-$USER}"
+HARDWARE_GROUPS=(dialout video audio render gpio i2c spi)
+
+echo "Adding ${TARGET_USER} to hardware access groups..."
+for group in "${HARDWARE_GROUPS[@]}"; do
+    if getent group "${group}" >/dev/null; then
+        usermod -aG "${group}" "${TARGET_USER}"
+        echo "Added ${TARGET_USER} to ${group}"
+    fi
+done
+
 echo "Goobo environment installation finished."
+echo "Reboot or log out and log back in before running hardware tools without sudo."

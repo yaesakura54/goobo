@@ -13,6 +13,20 @@ sudo ./install_environment.sh
 
 这个脚本会安装基础编译环境、OpenSSL、OpenGL 开发库、GPIO/WS281x/串口 Python 依赖、CSI 相机命令、ffmpeg、PulseAudio、ALSA 和 Python 音频依赖。
 
+脚本还会把执行 `sudo ./install_environment.sh` 的当前用户加入硬件访问用户组：`dialout`、`video`、`audio`、`render`、`gpio`、`i2c`、`spi`。这些组分别用于串口、摄像头、音频、GPU/相机渲染、GPIO、I2C 和 SPI 设备权限。
+
+用户组变更需要重新登录才会生效，最稳妥是安装完成后重启：
+
+```bash
+sudo reboot
+```
+
+重启后可以检查：
+
+```bash
+groups
+```
+
 ## 目录结构
 
 - `bus_servo_test/`: 总线舵机测试，包含 ID 设置、角度读取、串口调试。
