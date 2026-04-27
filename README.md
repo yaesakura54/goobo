@@ -33,6 +33,29 @@ sudo reboot
 groups
 ```
 
+## 项目检查
+
+安装环境后，可以运行项目级检查脚本：
+
+```bash
+cd /home/neurobo/test/goobo
+./run_project_checks.sh
+```
+
+默认模式只检查 Python/Shell 语法、关键依赖导入、CLI 入口和配置文件，不会让舵机动作、不会点亮灯阵，也不会进入 HX711 无限读取循环。
+
+如果要连硬件一起检查，显式加 `--hardware`：
+
+```bash
+./run_project_checks.sh --hardware
+```
+
+硬件模式会列出音频设备、检查相机命令版本、读取一次 HX711 raw 值、扫描舵机 ID，并低亮度点亮一次灯阵。舵机默认扫描 `/dev/ttyACM0` 上的 `1..5`，需要改端口或 ID 范围时：
+
+```bash
+SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh --hardware
+```
+
 ## 目录结构
 
 - `bus_servo_test/`: 总线舵机测试，包含 ID 设置、角度读取、串口调试。
