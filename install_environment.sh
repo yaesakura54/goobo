@@ -43,7 +43,10 @@ apt-get install -y \
     libpulse-dev \
     alsa-utils \
     libportaudio2 \
-    portaudio19-dev
+    portaudio19-dev \
+    fbset \
+    fbi \
+    imagemagick
 
 echo "Installing Goobo Python audio dependency..."
 python3 -m pip install --break-system-packages --resume-retries 10 --timeout 120 sounddevice
