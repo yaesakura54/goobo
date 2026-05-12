@@ -144,6 +144,20 @@ else
   echo "  ✓ 时区已是 Asia/Shanghai"
 fi
 
+# 3c) 校时（防御性）：Pi 没 RTC 电池，新镜像 fake-hwclock 时间可能在过去，
+#     导致后续 apt/pip 撞 SSL "certificate is not yet valid"。如果 Pi 时间比
+#     开发机早超过 1 天就推开发机时间过去并启用 NTP。
+LOCAL_EPOCH=$(date +%s)
+PI_EPOCH=$(ssh "$PI_HOST" 'date +%s' || echo 0)
+SKEW=$((LOCAL_EPOCH - PI_EPOCH))
+if [ "$SKEW" -gt 86400 ]; then
+  NOW_UTC=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+  pi_sudo "date -s '$NOW_UTC' >/dev/null && timedatectl set-ntp true"
+  echo "  ✓ 校时（Pi 比本机早 ${SKEW}s → 已推到 $NOW_UTC + 启 NTP）"
+else
+  echo "  ✓ 时间无明显漂移（Pi vs 本机 = ${SKEW}s）"
+fi
+
 # ─── 4) 装系统包 ───
 echo ""
 echo "[4/10] 安装系统依赖（apt）..."

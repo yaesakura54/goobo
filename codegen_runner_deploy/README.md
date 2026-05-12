@@ -63,6 +63,31 @@ PI_USER=other_user ./codegen_runner_deploy/verify_pi_setup.sh <pi_ip>
 
 ## 我们踩过的坑（供参考）
 
+### Pi 时间倒退导致 pip SSL 拒绝
+
+树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的最后一次开机时间往往是镜像制造日期，可能远早于现在。开机后 NTP 还没同步上时，pip 调 HTTPS（`pypi.tuna.tsinghua.edu.cn` 等）SSL 验证会发现 `证书 notBefore > 当前系统时间`，报 `certificate is not yet valid` 直接 fail。整个 `install_environment.sh` 就因此卡在装 `sounddevice` 那步。
+
+**修复**：在 install_environment 之前先推开发机时间 + 启用 NTP：
+
+```bash
+ssh <user>@<pi_ip> "echo '<pwd>' | sudo -S date -s '$(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)'"
+ssh <user>@<pi_ip> "echo '<pwd>' | sudo -S timedatectl set-ntp true"
+```
+
+`bootstrap_new_pi.sh` 第 3 步也内置了防御性校时：如果 Pi 时间比开发机时间早超过 1 天，自动推开发机时间过去并启用 NTP。但 install_environment 在 bootstrap 之前跑、撞 SSL 失败后就回不来了，所以**校时必须在 install_environment 之前**。
+
+### reboot 后 `ssh -o BatchMode=yes` 探活会卡住
+
+reboot 后想等 SSH 回来时用 `until ssh -o BatchMode=yes ... 'uptime'; do sleep 3; done` 这种探活循环不可靠——Pi 公钥还没配上时 `BatchMode=yes` 会拒绝密码认证，但不同 SSH 版本/网络条件下表现不一：可能立即 exit 1 让循环 retry，也可能**死等加密协商超时**让整个 ssh 命令挂住。
+
+**更稳的探活**：用 `nc -z` 探 TCP 22 端口（不进 SSH 协议握手）：
+
+```bash
+until nc -z -G 3 <pi_ip> 22; do sleep 3; done && echo "SSH port open"
+```
+
+**或者干脆不前置等待**：直接跑 `bootstrap_new_pi.sh`，它的 step 1（ping）+ step 2（SSH 探活）会自己等到 Pi 起来。
+
 ### apt 锁被 unattended-upgrades 占住
 
 新 Pi 开机后 30~60 分钟 `apt-daily-upgrade.timer` 会触发 unattended-upgrades。如果烧录的镜像没在出厂前跑过 `apt upgrade`，第一次升级要装 100+ 包（kernel/sudo/openssh/glibc 全套），占 dpkg 锁可能**半小时以上**。这时跑 `apt-get install` 直接 `Could not get lock /var/lib/dpkg/lock-frontend`。

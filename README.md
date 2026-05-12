@@ -72,6 +72,11 @@ SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh
 
 **前置**：
 
+- **校时**：树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的时间往往停在镜像制造日期（过去），开机后 NTP 还没同步上时，跑 `install_environment.sh` 里的 pip 会撞 SSL `certificate is not yet valid` 直接 fail。第一次连上 Pi 后**先校时再跑 install_environment**：
+  ```bash
+  ssh <user>@<pi_ip> "echo '<sudo-pwd>' | sudo -S date -s '$(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)'"
+  ssh <user>@<pi_ip> "echo '<sudo-pwd>' | sudo -S timedatectl set-ntp true"
+  ```
 - 已跑过本仓库的 `install_environment.sh` + 重启（装齐 apt/pip 依赖、加硬件用户组）
 - 在后端的 workshop 页面创建好设备，拿到 `device_id` + `device_secret`
 - 从后端运维处拿到 `HARDWARE_TOKEN`
