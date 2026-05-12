@@ -64,6 +64,36 @@ SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh
 - `eye_matrix_test/`: 8x8 WS281x LED 点阵表情测试。
 - `hx711_test/`: HX711 称重传感器驱动和读取测试。
 - `weight_eye_matrix_test/`: HX711 重量阈值联动 8x8 LED 点阵。
+- `codegen_runner_deploy/`: 把这台 Pi 部署成 codegen-runner 设备（轮询后端拉任务、跑生成代码）。
+
+## Codegen Runner 部署
+
+把树莓派变成"长跑设备"：开机自动起 systemd 服务，poll 后端拉 LLM 生成的 Python 代码，落到 `/opt/device-app/` 跑起来，通过 SDK（camera / face / speaker / sensors / vision / ai / net 等）跟硬件交互。
+
+**前置**：
+
+- 已跑过本仓库的 `install_environment.sh` + 重启（装齐 apt/pip 依赖、加硬件用户组）
+- 在后端的 workshop 页面创建好设备，拿到 `device_id` + `device_secret`
+- 从后端运维处拿到 `HARDWARE_TOKEN`
+- 开发机（不是 Pi）装 `expect`、`rsync`、`ssh`（macOS 默认有；Linux 上 `apt install expect rsync openssh-client`）
+
+**三步部署**（在能 ssh 到 Pi 的开发机上跑，不在 Pi 上跑）：
+
+```bash
+cd codegen_runner_deploy
+
+# 1) bootstrap：装 systemd 服务、推 SDK、配 sudoers + USB 声卡自适应
+HARDWARE_TOKEN=eyJ... ./bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
+
+# 2) 验收：自动测 SSH / 服务 / SDK / camera / mic / 后端联通，再让设备说话 + 切表情人工确认
+./verify_pi_setup.sh <pi_ip>
+
+# 3) 浏览器打开后端 workshop 提交需求，设备会自动拉代码执行
+```
+
+可选环境变量：`BACKEND_URL`（默认 `http://192.168.50.25:8080`）、`PI_USER`（默认 `guyu`）、`PI_PASSWORD`（默认 `123456`）。
+
+详细原理、踩坑记录、技术细节看 [`codegen_runner_deploy/README.md`](codegen_runner_deploy/README.md)。
 
 ## 相机测试
 
