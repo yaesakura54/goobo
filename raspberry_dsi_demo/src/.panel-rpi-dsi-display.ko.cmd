@@ -1,0 +1,1 @@
+savedcmd_panel-rpi-dsi-display.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/src/linux-headers-6.17.0-1011-raspi/scripts/module.lds -o panel-rpi-dsi-display.ko panel-rpi-dsi-display.o panel-rpi-dsi-display.mod.o .module-common.o
