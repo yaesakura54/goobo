@@ -86,7 +86,39 @@ else
     echo "  ${DSI_INSTALLER}"
 fi
 
+echo "Preparing Goobo framebuffer image display tools..."
+
+ASSETS_DIR="${SCRIPT_DIR}/assets"
+
+if [[ -d "${ASSETS_DIR}" ]]; then
+    chown -R "${TARGET_USER}:${TARGET_USER}" "${ASSETS_DIR}"
+
+    if [[ -f "${ASSETS_DIR}/show_image.py" ]]; then
+        chmod +x "${ASSETS_DIR}/show_image.py"
+        echo "Enabled executable permission: assets/show_image.py"
+    fi
+
+    if [[ -f "${ASSETS_DIR}/show_image.sh" ]]; then
+        chmod +x "${ASSETS_DIR}/show_image.sh"
+        echo "Enabled executable permission: assets/show_image.sh"
+    fi
+
+    if [[ -f "${ASSETS_DIR}/goobo_startup_480x640.png" ]]; then
+        echo "Found default startup image:"
+        echo "  ${ASSETS_DIR}/goobo_startup_480x640.png"
+    else
+        echo "WARNING: default startup image not found:"
+        echo "  ${ASSETS_DIR}/goobo_startup_480x640.png"
+    fi
+else
+    echo "WARNING: assets directory not found:"
+    echo "  ${ASSETS_DIR}"
+fi
+
 echo
 echo "Goobo environment installation finished."
 echo "Please reboot before using hardware tools without sudo:"
 echo "  sudo reboot"
+echo
+echo "After reboot, you can show the startup image with:"
+echo "  ~/goobo/assets/show_image.py"
