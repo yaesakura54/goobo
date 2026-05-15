@@ -2,7 +2,7 @@
 # 验收新部署的树莓派：4 部件 + backend 联通
 #
 # 用法：
-#   ./device_runner/deploy/verify_pi_setup.sh <pi_ip>
+#   ./scripts/codegen_runner/verify_pi_setup.sh <pi_ip>
 #
 # 检查项：
 #   1. SSH 连通

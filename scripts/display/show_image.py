@@ -22,8 +22,8 @@ def require_root():
 
 
 def get_default_image():
-    script_dir = Path(__file__).resolve().parent
-    return script_dir / "goobo_startup_480x640.png"
+    repo_dir = Path(__file__).resolve().parents[2]
+    return repo_dir / "assets" / "goobo_startup_480x640.png"
 
 
 def stop_old_fbi():

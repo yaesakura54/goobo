@@ -4,8 +4,10 @@ set -euo pipefail
 SERVICE_NAME="goobo-weight-eye-matrix.service"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_SCRIPT="${SCRIPT_DIR}/weight_eye_matrix.py"
-CONFIG_FILE="${SCRIPT_DIR}/config.ini"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+APP_DIR="${REPO_DIR}/weight_eye_matrix_test"
+APP_SCRIPT="${APP_DIR}/weight_eye_matrix.py"
+CONFIG_FILE="${APP_DIR}/config.ini"
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "ERROR: run this installer with sudo."
@@ -34,7 +36,7 @@ Before=multi-user.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=${SCRIPT_DIR}
+WorkingDirectory=${APP_DIR}
 ExecStart=/usr/bin/python3 -u ${APP_SCRIPT} --config ${CONFIG_FILE}
 Restart=on-failure
 RestartSec=5

@@ -246,8 +246,8 @@ Ubuntu 25 使用 systemd 管理开机服务。安装脚本会创建并启用：
 安装：
 
 ```bash
-cd /home/neurobo/test/goobo/weight_eye_matrix_test
-sudo ./install_autostart.sh
+cd /home/neurobo/test/goobo
+sudo ./scripts/weight_eye_matrix/install_autostart.sh
 ```
 
 安装脚本会执行 `systemctl enable` 和 `systemctl start`。运行安装脚本前，先确认树莓派已经接好 HX711、LED 点阵和 `/dev/ttyACM0` 舵机总线。
@@ -277,4 +277,4 @@ sudo systemctl stop goobo-weight-eye-matrix.service
 sudo systemctl disable goobo-weight-eye-matrix.service
 ```
 
-如果舵机串口不是 `/dev/ttyACM0`，先修改 `config.ini` 里的 `servo_bus.port`，再同步调整 `install_autostart.sh` 生成的 service 依赖。
+如果舵机串口不是 `/dev/ttyACM0`，先修改 `config.ini` 里的 `servo_bus.port`，再同步调整 `scripts/weight_eye_matrix/install_autostart.sh` 生成的 service 依赖。

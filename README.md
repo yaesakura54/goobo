@@ -8,7 +8,7 @@
 
 ```bash
 cd /home/neurobo/test/goobo
-sudo ./install_environment.sh
+sudo ./scripts/install_environment.sh
 ```
 
 这个脚本会安装基础编译环境、OpenSSL、OpenGL 开发库、GPIO/WS281x/串口 Python 依赖、CSI 相机命令、ffmpeg、PulseAudio、ALSA 和 Python 音频依赖。
@@ -16,10 +16,10 @@ sudo ./install_environment.sh
 如果安装 `sounddevice` 时 PyPI 下载超时，可以指定镜像后重跑：
 
 ```bash
-sudo env PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple ./install_environment.sh
+sudo env PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple ./scripts/install_environment.sh
 ```
 
-脚本还会把执行 `sudo ./install_environment.sh` 的当前用户加入硬件访问用户组：`dialout`、`video`、`audio`、`render`、`gpio`、`i2c`、`spi`。这些组分别用于串口、摄像头、音频、GPU/相机渲染、GPIO、I2C 和 SPI 设备权限。
+脚本还会把执行 `sudo ./scripts/install_environment.sh` 的当前用户加入硬件访问用户组：`dialout`、`video`、`audio`、`render`、`gpio`、`i2c`、`spi`。这些组分别用于串口、摄像头、音频、GPU/相机渲染、GPIO、I2C 和 SPI 设备权限。
 
 用户组变更需要重新登录才会生效，最稳妥是安装完成后重启：
 
@@ -39,7 +39,7 @@ groups
 
 ```bash
 cd /home/neurobo/test/goobo
-./run_project_checks.sh
+./scripts/run_project_checks.sh
 ```
 
 默认模式只检查 Python/Shell 语法、关键依赖导入、CLI 入口和配置文件，不会让舵机动作、不会点亮灯阵，也不会进入 HX711 无限读取循环。
@@ -47,13 +47,13 @@ cd /home/neurobo/test/goobo
 如果要连硬件一起检查，显式加 `--hardware`：
 
 ```bash
-./run_project_checks.sh --hardware
+./scripts/run_project_checks.sh --hardware
 ```
 
 硬件模式会列出音频设备、检查相机命令版本、读取一次 HX711 raw 值、扫描舵机 ID，并低亮度点亮一次灯阵。舵机默认扫描 `/dev/ttyACM0` 上的 `1..5`，需要改端口或 ID 范围时：
 
 ```bash
-SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh --hardware
+SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./scripts/run_project_checks.sh --hardware
 ```
 
 ## 目录结构
@@ -65,6 +65,7 @@ SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh
 - `hx711_test/`: HX711 称重传感器驱动和读取测试。
 - `weight_eye_matrix_test/`: HX711 重量阈值联动 8x8 LED 点阵。
 - `codegen_runner_deploy/`: 把这台 Pi 部署成 codegen-runner 设备（轮询后端拉任务、跑生成代码）。
+- `scripts/`: 项目级安装、检查、部署、自启动和显示脚本入口。
 
 ## Codegen Runner 部署
 
@@ -72,12 +73,12 @@ SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh
 
 **前置**：
 
-- **校时**：树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的时间往往停在镜像制造日期（过去），开机后 NTP 还没同步上时，跑 `install_environment.sh` 里的 pip 会撞 SSL `certificate is not yet valid` 直接 fail。第一次连上 Pi 后**先校时再跑 install_environment**：
+- **校时**：树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的时间往往停在镜像制造日期（过去），开机后 NTP 还没同步上时，跑 `scripts/install_environment.sh` 里的 pip 会撞 SSL `certificate is not yet valid` 直接 fail。第一次连上 Pi 后**先校时再跑 install_environment**：
   ```bash
   ssh <user>@<pi_ip> "echo '<sudo-pwd>' | sudo -S date -s '$(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)'"
   ssh <user>@<pi_ip> "echo '<sudo-pwd>' | sudo -S timedatectl set-ntp true"
   ```
-- 已跑过本仓库的 `install_environment.sh` + 重启（装齐 apt/pip 依赖、加硬件用户组）
+- 已跑过本仓库的 `scripts/install_environment.sh` + 重启（装齐 apt/pip 依赖、加硬件用户组）
 - 在后端的 workshop 页面创建好设备，拿到 `device_id` + `device_secret`
 - 从后端运维处拿到 `HARDWARE_TOKEN`
 - 开发机（不是 Pi）装 `expect`、`rsync`、`ssh`（macOS 默认有；Linux 上 `apt install expect rsync openssh-client`）
@@ -85,13 +86,11 @@ SERVO_PORT=/dev/ttyUSB0 SERVO_START_ID=1 SERVO_END_ID=20 ./run_project_checks.sh
 **三步部署**（在能 ssh 到 Pi 的开发机上跑，不在 Pi 上跑）：
 
 ```bash
-cd codegen_runner_deploy
-
 # 1) bootstrap：装 systemd 服务、推 SDK、配 sudoers + USB 声卡自适应
-HARDWARE_TOKEN=eyJ... ./bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
+HARDWARE_TOKEN=eyJ... ./scripts/codegen_runner/bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
 
 # 2) 验收：自动测 SSH / 服务 / SDK / camera / mic / 后端联通，再让设备说话 + 切表情人工确认
-./verify_pi_setup.sh <pi_ip>
+./scripts/codegen_runner/verify_pi_setup.sh <pi_ip>
 
 # 3) 浏览器打开后端 workshop 提交需求，设备会自动拉代码执行
 ```

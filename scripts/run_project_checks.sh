@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_HARDWARE=false
 FAILURES=0
 
@@ -13,8 +13,8 @@ SERVO_END_ID="${SERVO_END_ID:-5}"
 usage() {
     cat <<EOF
 Usage:
-  ./run_project_checks.sh
-  ./run_project_checks.sh --hardware
+  ./scripts/run_project_checks.sh
+  ./scripts/run_project_checks.sh --hardware
 
 Environment variables for --hardware:
   SERVO_PORT      default: /dev/ttyACM0
@@ -162,7 +162,7 @@ PY
     run_check "eye matrix one frame" sudo python3 eye_matrix_test/eye_matrix_8x8.py --state neutral --once --brightness 8
 else
     echo
-    echo "Skipping hardware actions. Use ./run_project_checks.sh --hardware to test devices."
+    echo "Skipping hardware actions. Use ./scripts/run_project_checks.sh --hardware to test devices."
 fi
 
 echo

@@ -3,14 +3,15 @@ set -euo pipefail
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "ERROR: run this installer with sudo."
-    echo "Example: sudo ./install_environment.sh"
+    echo "Example: sudo ./scripts/install_environment.sh"
     exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TARGET_USER="${SUDO_USER:-$USER}"
 
-echo "Goobo project directory: ${SCRIPT_DIR}"
+echo "Goobo project directory: ${REPO_DIR}"
 echo "Target non-root user: ${TARGET_USER}"
 
 echo "Updating apt package index..."
@@ -65,8 +66,8 @@ done
 
 echo "Checking optional Raspberry Pi DSI display installer..."
 
-DSI_DIR="${SCRIPT_DIR}/raspberry_dsi_demo"
-DSI_INSTALLER="${DSI_DIR}/install_ubuntu25_pi4_w280.sh"
+DSI_DIR="${REPO_DIR}/raspberry_dsi_demo"
+DSI_INSTALLER="${REPO_DIR}/scripts/raspberry_dsi/install_ubuntu25_pi4_w280.sh"
 
 if [[ -f "${DSI_INSTALLER}" ]]; then
     echo "Found DSI installer: ${DSI_INSTALLER}"
@@ -88,19 +89,15 @@ fi
 
 echo "Preparing Goobo framebuffer image display tools..."
 
-ASSETS_DIR="${SCRIPT_DIR}/assets"
+ASSETS_DIR="${REPO_DIR}/assets"
+DISPLAY_SCRIPT="${REPO_DIR}/scripts/display/show_image.py"
 
 if [[ -d "${ASSETS_DIR}" ]]; then
     chown -R "${TARGET_USER}:${TARGET_USER}" "${ASSETS_DIR}"
 
-    if [[ -f "${ASSETS_DIR}/show_image.py" ]]; then
-        chmod +x "${ASSETS_DIR}/show_image.py"
-        echo "Enabled executable permission: assets/show_image.py"
-    fi
-
-    if [[ -f "${ASSETS_DIR}/show_image.sh" ]]; then
-        chmod +x "${ASSETS_DIR}/show_image.sh"
-        echo "Enabled executable permission: assets/show_image.sh"
+    if [[ -f "${DISPLAY_SCRIPT}" ]]; then
+        chmod +x "${DISPLAY_SCRIPT}"
+        echo "Enabled executable permission: scripts/display/show_image.py"
     fi
 
     if [[ -f "${ASSETS_DIR}/goobo_startup_480x640.png" ]]; then
@@ -121,4 +118,4 @@ echo "Please reboot before using hardware tools without sudo:"
 echo "  sudo reboot"
 echo
 echo "After reboot, you can show the startup image with:"
-echo "  ~/goobo/assets/show_image.py"
+echo "  ${REPO_DIR}/scripts/display/show_image.py"

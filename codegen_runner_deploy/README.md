@@ -15,18 +15,18 @@
 
 ### 2) 跑 bootstrap
 
-`HARDWARE_TOKEN` 是 backend 共享密钥，**必传**，从 backend 运维处获取。
+`HARDWARE_TOKEN` 是 backend 共享密钥，**必传**，从 backend 运维处获取。以下命令在项目根目录执行。
 
 ```bash
 HARDWARE_TOKEN=eyJ... \
-  ./codegen_runner_deploy/bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
+  ./scripts/codegen_runner/bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
 ```
 
 如果 ssh 用户名不是默认的 `guyu`，或 backend 不在默认地址：
 
 ```bash
 HARDWARE_TOKEN=eyJ... PI_USER=guyu BACKEND_URL=http://<your-mac-ip>:8080 \
-  ./codegen_runner_deploy/bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
+  ./scripts/codegen_runner/bootstrap_new_pi.sh <pi_ip> <device_id> <device_secret>
 ```
 
 脚本 10 步自动完成：
@@ -47,9 +47,9 @@ HARDWARE_TOKEN=eyJ... PI_USER=guyu BACKEND_URL=http://<your-mac-ip>:8080 \
 ### 3) 验收
 
 ```bash
-./codegen_runner_deploy/verify_pi_setup.sh <pi_ip>
+./scripts/codegen_runner/verify_pi_setup.sh <pi_ip>
 # 用户不是 guyu 时显式传 PI_USER：
-PI_USER=other_user ./codegen_runner_deploy/verify_pi_setup.sh <pi_ip>
+PI_USER=other_user ./scripts/codegen_runner/verify_pi_setup.sh <pi_ip>
 ```
 
 自动测：SSH / runner / SDK 模块 / camera / mic / 后端 LLM 联通。
@@ -58,14 +58,14 @@ PI_USER=other_user ./codegen_runner_deploy/verify_pi_setup.sh <pi_ip>
 ## 重新部署 / 换设备 / 换 backend
 
 - 换 device_id：workshop 添新设备拿新凭证 → 重跑 bootstrap，会覆盖 systemd 配置
-- 换 backend：`BACKEND_URL=https://... ./codegen_runner_deploy/bootstrap_new_pi.sh ...`
+- 换 backend：`BACKEND_URL=https://... ./scripts/codegen_runner/bootstrap_new_pi.sh ...`
 - device_secret 忘了：workshop 删设备 → 重新添加 → 拿新凭证 → 重跑 bootstrap
 
 ## 我们踩过的坑（供参考）
 
 ### Pi 时间倒退导致 pip SSL 拒绝
 
-树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的最后一次开机时间往往是镜像制造日期，可能远早于现在。开机后 NTP 还没同步上时，pip 调 HTTPS（`pypi.tuna.tsinghua.edu.cn` 等）SSL 验证会发现 `证书 notBefore > 当前系统时间`，报 `certificate is not yet valid` 直接 fail。整个 `install_environment.sh` 就因此卡在装 `sounddevice` 那步。
+树莓派没 RTC 电池，新镜像 `fake-hwclock` 保存的最后一次开机时间往往是镜像制造日期，可能远早于现在。开机后 NTP 还没同步上时，pip 调 HTTPS（`pypi.tuna.tsinghua.edu.cn` 等）SSL 验证会发现 `证书 notBefore > 当前系统时间`，报 `certificate is not yet valid` 直接 fail。整个 `scripts/install_environment.sh` 就因此卡在装 `sounddevice` 那步。
 
 **修复**：在 install_environment 之前先推开发机时间 + 启用 NTP：
 
@@ -74,7 +74,7 @@ ssh <user>@<pi_ip> "echo '<pwd>' | sudo -S date -s '$(date -u +%Y-%m-%d\ %H:%M:%
 ssh <user>@<pi_ip> "echo '<pwd>' | sudo -S timedatectl set-ntp true"
 ```
 
-`bootstrap_new_pi.sh` 第 3 步也内置了防御性校时：如果 Pi 时间比开发机时间早超过 1 天，自动推开发机时间过去并启用 NTP。但 install_environment 在 bootstrap 之前跑、撞 SSL 失败后就回不来了，所以**校时必须在 install_environment 之前**。
+`scripts/codegen_runner/bootstrap_new_pi.sh` 第 3 步也内置了防御性校时：如果 Pi 时间比开发机时间早超过 1 天，自动推开发机时间过去并启用 NTP。但 install_environment 在 bootstrap 之前跑、撞 SSL 失败后就回不来了，所以**校时必须在 install_environment 之前**。
 
 ### reboot 后 `ssh -o BatchMode=yes` 探活会卡住
 
@@ -86,7 +86,7 @@ reboot 后想等 SSH 回来时用 `until ssh -o BatchMode=yes ... 'uptime'; do s
 until nc -z -G 3 <pi_ip> 22; do sleep 3; done && echo "SSH port open"
 ```
 
-**或者干脆不前置等待**：直接跑 `bootstrap_new_pi.sh`，它的 step 1（ping）+ step 2（SSH 探活）会自己等到 Pi 起来。
+**或者干脆不前置等待**：直接跑 `scripts/codegen_runner/bootstrap_new_pi.sh`，它的 step 1（ping）+ step 2（SSH 探活）会自己等到 Pi 起来。
 
 ### apt 锁被 unattended-upgrades 占住
 
